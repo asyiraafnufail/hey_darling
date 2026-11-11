@@ -13,3 +13,9 @@ test('keepalive: workflow and cloudflare script use correct rpc endpoint and cro
 
   assert.strictEqual(fs.existsSync('docs/keepalive-setup.md'), true, 'Documentation guide must exist');
 });
+
+test('keepalive: cloudflare-worker-keepalive.js is valid ES module syntax', async () => {
+  const mod = await import('../scripts/cloudflare-worker-keepalive.js');
+  assert.strictEqual(typeof mod.default?.scheduled, 'function');
+  assert.strictEqual(typeof mod.default?.fetch, 'function');
+});

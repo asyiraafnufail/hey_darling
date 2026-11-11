@@ -1,15 +1,13 @@
-/**
- * Cloudflare Worker Cron Keep-Alive untuk Supabase Free Tier
- * Mencegah proyek Supabase mengalami auto-pause setelah 7 hari idle.
- *
- * Jadwal Cron (wrangler.toml):
- * [triggers]
- * crons = ["0 0 */3 * *"]
- *
- * Environment Variables / Secrets di Cloudflare Dashboard:
- * - SUPABASE_URL: https://<project-ref>.supabase.co
- * - SUPABASE_ANON_KEY: <anon-public-key>
- */
+// Cloudflare Worker Cron Keep-Alive untuk Supabase Free Tier
+// Mencegah proyek Supabase mengalami auto-pause setelah 7 hari idle.
+//
+// Jadwal Cron (wrangler.toml):
+// [triggers]
+// crons = ["0 0 */3 * *"]
+//
+// Environment Variables / Secrets di Cloudflare Dashboard:
+// - SUPABASE_URL: https://<project-ref>.supabase.co
+// - SUPABASE_ANON_KEY: <anon-public-key>
 
 export default {
   async scheduled(event, env, ctx) {
