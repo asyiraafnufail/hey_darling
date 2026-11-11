@@ -14,9 +14,9 @@ Supabase Free Tier otomatis menonaktifkan (*pause*) proyek jika tidak ada aktivi
 3. Buka tab **Advanced**:
    - **Request method**: `POST`
    - **Headers**:
-     - `apikey`: `<SUPABASE_ANON_KEY>`
-     - `Authorization`: `Bearer <SUPABASE_ANON_KEY>`
+     - `apikey`: `<SUPABASE_ANON_KEY atau sb_publishable_...>`
      - `Content-Type`: `application/json`
+     - *(Tambahkan `Authorization`: `Bearer <key>` **hanya jika** memakai legacy `anon` key yang diawali `eyJ`; jika memakai `Publishable key` baru `sb_publishable_...`, jangan isi `Authorization`)*
 4. Klik **Save**. Database akan diping dengan response 1 byte (`1`) dan tidak pernah auto-pause.
 
 ---

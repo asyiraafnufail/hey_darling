@@ -174,13 +174,17 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
     try {
       const url = `${CONFIG.SUPABASE_URL}/functions/v1/notify-call`;
       const { session } = await api.getSession();
+      const headers = {
+        'Content-Type': 'application/json',
+        apikey: CONFIG.SUPABASE_ANON_KEY,
+      };
+      if (session?.access_token) {
+        headers.Authorization = `Bearer ${session.access_token}`;
+      }
+
       await fetch(url, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${session?.access_token || CONFIG.SUPABASE_ANON_KEY}`,
-          apikey: CONFIG.SUPABASE_ANON_KEY,
-        },
+        headers,
         body: JSON.stringify({
           caller_id: currentUser?.id,
           caller_name: currentUser?.user_metadata?.display_name || 'Pasangan',

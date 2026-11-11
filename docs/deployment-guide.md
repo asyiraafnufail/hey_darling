@@ -52,8 +52,9 @@ Web Push membutuhkan pasangan kunci VAPID (gratis dan dihasilkan secara lokal se
 4. Deploy kedua Edge Functions (`notify-message` dan `notify-call`):
    ```bash
    npx supabase functions deploy notify-message --no-verify-jwt
-   npx supabase functions deploy notify-call
+   npx supabase functions deploy notify-call --no-verify-jwt
    ```
+   *(Catatan: `--no-verify-jwt` pada `notify-call` tetap aman karena fungsi memvalidasi sesi user secara langsung di dalam kode dan mencegah error saat proyek menggunakan Asymmetric JWT / Publishable Key baru).*
 
 5. **Pasang Database Webhook untuk Notifikasi Chat**:
    - Di Supabase Dashboard -> **Database -> Webhooks -> Create a new hook**.

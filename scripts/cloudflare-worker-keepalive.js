@@ -32,13 +32,18 @@ async function pingSupabase(env) {
   }
 
   const endpoint = `${env.SUPABASE_URL.replace(/\/$/, '')}/rest/v1/rpc/keep_alive`;
+  const headers = {
+    apikey: env.SUPABASE_ANON_KEY,
+    'Content-Type': 'application/json',
+  };
+  // Legacy anon key berupa JWT (eyJ...); new publishable key (sb_publishable_...) hanya pakai header apikey
+  if (env.SUPABASE_ANON_KEY.startsWith('eyJ')) {
+    headers.Authorization = `Bearer ${env.SUPABASE_ANON_KEY}`;
+  }
+
   const response = await fetch(endpoint, {
     method: 'POST',
-    headers: {
-      apikey: env.SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${env.SUPABASE_ANON_KEY}`,
-      'Content-Type': 'application/json',
-    },
+    headers,
   });
 
   const text = await response.text();

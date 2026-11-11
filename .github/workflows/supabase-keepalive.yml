@@ -18,9 +18,14 @@ jobs:
           fi
 
           echo "Mengirim ping RPC keep_alive ke Supabase..."
+          AUTH_HEADER=()
+          case "${{ secrets.SUPABASE_ANON_KEY }}" in
+            eyJ*) AUTH_HEADER=(-H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}") ;;
+          esac
+
           RESPONSE=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "${{ secrets.SUPABASE_URL }}/rest/v1/rpc/keep_alive" \
             -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}" \
-            -H "Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}" \
+            "${AUTH_HEADER[@]}" \
             -H "Content-Type: application/json")
 
           HTTP_STATUS=$(echo "$RESPONSE" | grep "HTTP_STATUS" | cut -d':' -f2)

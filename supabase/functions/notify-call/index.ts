@@ -12,23 +12,34 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const body = await req.json().catch(() => ({}));
-    const callerId = body?.caller_id;
-
-    if (!callerId) {
-      return new Response(JSON.stringify({ error: 'caller_id is required' }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        status: 400,
-      });
-    }
-
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+    const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || Deno.env.get('SECRET_KEY') || '';
     const vapidPublicKey = Deno.env.get('VAPID_PUBLIC_KEY')!;
     const vapidPrivateKey = Deno.env.get('VAPID_PRIVATE_KEY')!;
     const vapidSubject = Deno.env.get('VAPID_SUBJECT') || 'mailto:admin@heydarling.local';
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
+
+    // Verifikasi user dari Authorization Bearer JWT (kompatibel dengan legacy & asymmetric JWT baru)
+    const authHeader = req.headers.get('Authorization') || '';
+    const token = authHeader.replace(/^Bearer\s+/i, '');
+    if (!token) {
+      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
+    }
+
+    const { data: authData, error: authErr } = await supabase.auth.getUser(token);
+    if (authErr || !authData?.user) {
+      return new Response(JSON.stringify({ error: 'Invalid session token' }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 401,
+      });
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const callerId = authData.user.id;
 
     // 1. Ambil nama pemanggil jika belum diberikan
     let callerName = body?.caller_name;
