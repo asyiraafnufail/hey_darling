@@ -184,3 +184,56 @@ test('app_integration: sendMessage failure surfaces retry button and caps DOM at
     cleanup();
   }
 });
+
+test('app_integration: Enter inserts newline on mobile touch devices and sends on desktop', async () => {
+  const { dom, cleanup } = createMinimalDomMocks();
+  const prevWindow = globalThis.window;
+  let sendCount = 0;
+
+  try {
+    const db = createChatDB(createMockIndexedDB());
+    const mockApi = {
+      async getSession() { return { session: { user: { id: 'u1' } } }; },
+      async syncPartnerProfile() { return { partnerProfile: { id: 'u2', display_name: 'Sayang' } }; },
+      async fetchDeltaMessages() { return []; },
+      subscribeToMessages() {},
+      unsubscribeRealtime() {},
+      async sendMessage(body, senderId) {
+        sendCount++;
+        return { data: { id: `m-${sendCount}`, sender_id: senderId, body, created_at: new Date().toISOString() }, error: null };
+      },
+    };
+
+    const controller = createAppController({ api: mockApi, db, dom });
+    await controller.init();
+    const keydownHandler = dom.messageInput.listeners.keydown[0];
+
+    // 1. Mobile (pointer: coarse) -> Enter tidak mengirim, membiarkan baris baru
+    globalThis.window = { matchMedia: (q) => ({ matches: q.includes('pointer: coarse') }) };
+    dom.messageInput.value = 'Baris 1';
+    let prevented = false;
+    keydownHandler({ key: 'Enter', shiftKey: false, preventDefault() { prevented = true; } });
+    assert.strictEqual(prevented, false, 'Mobile Enter must not call preventDefault');
+    assert.strictEqual(sendCount, 0, 'Mobile Enter must not send message');
+
+    // 2. Desktop (pointer: fine) -> Enter mengirim pesan, Shift+Enter baris baru
+    globalThis.window = { matchMedia: () => ({ matches: false }) };
+    prevented = false;
+    keydownHandler({ key: 'Enter', shiftKey: true, preventDefault() { prevented = true; } });
+    assert.strictEqual(prevented, false, 'Desktop Shift+Enter must allow newline');
+    assert.strictEqual(sendCount, 0);
+
+    dom.messageInput.value = 'Pesan desktop';
+    keydownHandler({ key: 'Enter', shiftKey: false, preventDefault() { prevented = true; } });
+    await new Promise((r) => setTimeout(r, 10));
+    assert.strictEqual(prevented, true, 'Desktop Enter must call preventDefault');
+    assert.strictEqual(sendCount, 1, 'Desktop Enter must send message');
+  } finally {
+    if (prevWindow === undefined) {
+      delete globalThis.window;
+    } else {
+      globalThis.window = prevWindow;
+    }
+    cleanup();
+  }
+});

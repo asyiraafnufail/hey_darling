@@ -398,7 +398,8 @@ export function createAppController({ api, db, dom, callModule = null }) {
 
       if (sub && currentUser) {
         const subJson = sub.toJSON();
-        await api.savePushSubscription(currentUser.id, subJson, navigator.userAgent);
+        const saveRes = await api.savePushSubscription(currentUser.id, subJson, navigator.userAgent);
+        if (saveRes?.error) throw saveRes.error;
         if (notifBtn) {
           notifBtn.classList.add('notif-enabled');
           notifBtn.title = 'Notifikasi Aktif';
@@ -511,7 +512,12 @@ export function createAppController({ api, db, dom, callModule = null }) {
         messageInput.style.height = Math.min(messageInput.scrollHeight, 110) + 'px';
       });
       messageInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
+        const isMobile =
+          (typeof window !== 'undefined' && typeof window.matchMedia === 'function' && window.matchMedia('(pointer: coarse)').matches) ||
+          (typeof navigator !== 'undefined' && /iPhone|iPad|iPod|Android/i.test(navigator.userAgent || ''));
+
+        // Di HP: Enter buat baris baru; di Desktop: Enter kirim pesan, Shift+Enter baris baru
+        if (!isMobile && !e.isComposing && e.key === 'Enter' && !e.shiftKey) {
           e.preventDefault();
           sendMessage();
         }

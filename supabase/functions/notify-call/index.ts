@@ -88,8 +88,12 @@ Deno.serve(async (req) => {
 
           if (res.ok) {
             sentCount++;
-          } else if (res.status === 410 || res.status === 404) {
-            staleEndpoints.push(sub.endpoint);
+          } else {
+            const errText = await res.text().catch(() => '');
+            console.error('Call push rejected:', res.status, sub.endpoint.slice(0, 50), errText);
+            if (res.status === 410 || res.status === 404) {
+              staleEndpoints.push(sub.endpoint);
+            }
           }
         } catch (err) {
           console.error('Call push error:', err);

@@ -3,7 +3,7 @@
  * Strategi Cache-First untuk aset statis (< 10ms muat ulang) dan W3C Web Push (layar mati).
  */
 
-const CACHE_NAME = 'hey_darling_v1';
+const CACHE_NAME = 'hey_darling_v2';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
