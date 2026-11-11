@@ -1,16 +1,7 @@
-# hey_darling
+# Hey Darling
 
-A new Flutter project.
+Aplikasi chat teks 1-on-1 dan panggilan suara internet P2P berbasis PWA super ringan untuk iOS, Android, Windows, dan macOS dengan backend Supabase Free Tier.
 
-## Getting Started
-
-This project is a starting point for a Flutter application.
-
-A few resources to get you started if this is your first Flutter project:
-
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
-
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+- **Dokumen Desain**: `docs/superpowers/specs/2026-11-12-hey-darling-design.md`
+- **Panduan Keep-Alive**: `docs/keepalive-setup.md`
+- **Panduan Deployment**: `docs/deployment-guide.md`
