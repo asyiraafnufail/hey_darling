@@ -603,6 +603,7 @@ if (typeof window !== 'undefined' && typeof document !== 'undefined') {
         callPartnerName: document.getElementById('call-partner-name'),
         callStatusText: document.getElementById('call-status-text'),
         callAnswerBtn: document.getElementById('call-answer-btn'),
+        callSpeakerBtn: document.getElementById('call-speaker-btn'),
         callMuteBtn: document.getElementById('call-mute-btn'),
         callEndBtn: document.getElementById('call-end-btn'),
         remoteAudio: document.getElementById('remote-audio'),

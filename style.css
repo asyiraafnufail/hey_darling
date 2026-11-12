@@ -439,6 +439,7 @@ html, body {
   text-align: center;
   padding: 28px;
   width: 280px;
+  color: #f2f2f7;
 }
 
 .call-avatar {
@@ -462,7 +463,47 @@ html, body {
 .call-controls {
   display: flex;
   justify-content: center;
-  gap: 14px;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.call-ctrl-btn {
+  width: 54px;
+  height: 54px;
+  border: none;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #ffffff;
+  transition: transform 0.12s ease, background-color 0.15s ease, opacity 0.15s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+}
+
+.call-ctrl-btn:active {
+  transform: scale(0.92);
+}
+
+.call-ctrl-btn.accept {
+  background: #30d158;
+}
+
+.call-ctrl-btn.reject {
+  background: var(--danger);
+}
+
+.call-ctrl-btn.secondary {
+  background: var(--surface-alt);
+  color: var(--text);
+  border: 1px solid var(--border);
+}
+
+.call-ctrl-btn.secondary.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
 }
 
 .call-action {

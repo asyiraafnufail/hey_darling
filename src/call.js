@@ -28,6 +28,9 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
   let callTimerInterval = null;
   let callDurationSeconds = 0;
   let isMuted = false;
+  let isSpeakerOn = false;
+  let disconnectTimer = null;
+  let keepAliveAudio = null;
   let activePartner = partnerProfile;
   let pendingCandidates = [];
 
@@ -41,6 +44,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
     callPartnerName,
     callStatusText,
     callAnswerBtn,
+    callSpeakerBtn,
     callMuteBtn,
     callEndBtn,
     remoteAudio,
@@ -58,8 +62,11 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
   }
 
   function startDurationTimer() {
-    stopDurationTimer();
+    if (callTimerInterval) return;
     callDurationSeconds = 0;
+    if (callStatusText) {
+      callStatusText.textContent = 'Terhubung (00:00)';
+    }
     callTimerInterval = setInterval(() => {
       callDurationSeconds++;
       if (callStatusText) {
@@ -76,6 +83,115 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
     callDurationSeconds = 0;
   }
 
+  function clearDisconnectTimer() {
+    if (disconnectTimer) {
+      clearTimeout(disconnectTimer);
+      disconnectTimer = null;
+    }
+  }
+
+  function startKeepAlive() {
+    if (typeof Audio === 'undefined') return;
+    try {
+      if (!keepAliveAudio) {
+        // WAV hening minimal agar sesi audio WebKit iOS tetap aktif saat layar mati
+        keepAliveAudio = new Audio('data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=');
+        keepAliveAudio.loop = true;
+      }
+      keepAliveAudio.play().catch(() => {});
+    } catch {
+      // Abaikan jika platform tidak mendukung Audio constructor (misal test Node)
+    }
+  }
+
+  function stopKeepAlive() {
+    if (keepAliveAudio) {
+      try {
+        keepAliveAudio.pause();
+      } catch {
+        // noop
+      }
+      keepAliveAudio = null;
+    }
+  }
+
+  function setupMediaSession() {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+    try {
+      const partnerName = activePartner?.display_name || partnerProfile?.display_name || 'Pasangan';
+      if (typeof MediaMetadata !== 'undefined') {
+        navigator.mediaSession.metadata = new MediaMetadata({
+          title: partnerName,
+          artist: 'Hey Darling • Panggilan Suara',
+        });
+      }
+      navigator.mediaSession.playbackState = 'playing';
+      navigator.mediaSession.setActionHandler?.('play', () => {
+        remoteAudio?.play?.().catch?.(() => {});
+        keepAliveAudio?.play?.().catch?.(() => {});
+      });
+      navigator.mediaSession.setActionHandler?.('hangup', () => {
+        endCall(true);
+      });
+    } catch (e) {
+      console.warn('MediaSession setup warning:', e);
+    }
+  }
+
+  function clearMediaSession() {
+    if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
+    try {
+      navigator.mediaSession.playbackState = 'none';
+      navigator.mediaSession.metadata = null;
+    } catch {
+      // noop
+    }
+  }
+
+  function updateMuteUI() {
+    if (!callMuteBtn) return;
+    const onIcon = callMuteBtn.querySelector?.('.icon-mic-on');
+    const offIcon = callMuteBtn.querySelector?.('.icon-mic-off');
+    if (onIcon && offIcon) {
+      if (isMuted) {
+        onIcon.classList.add('hidden');
+        offIcon.classList.remove('hidden');
+      } else {
+        onIcon.classList.remove('hidden');
+        offIcon.classList.add('hidden');
+      }
+    }
+    if (isMuted) {
+      callMuteBtn.classList.add('active');
+    } else {
+      callMuteBtn.classList.remove('active');
+    }
+    callMuteBtn.setAttribute?.('aria-pressed', String(isMuted));
+    callMuteBtn.title = isMuted ? 'Nyalakan Mic' : 'Matikan Mic';
+  }
+
+  function updateSpeakerUI() {
+    if (!callSpeakerBtn) return;
+    const onIcon = callSpeakerBtn.querySelector?.('.icon-speaker-on');
+    const offIcon = callSpeakerBtn.querySelector?.('.icon-speaker-off');
+    if (onIcon && offIcon) {
+      if (isSpeakerOn) {
+        onIcon.classList.remove('hidden');
+        offIcon.classList.add('hidden');
+      } else {
+        onIcon.classList.add('hidden');
+        offIcon.classList.remove('hidden');
+      }
+    }
+    if (isSpeakerOn) {
+      callSpeakerBtn.classList.add('active');
+    } else {
+      callSpeakerBtn.classList.remove('active');
+    }
+    callSpeakerBtn.setAttribute?.('aria-pressed', String(isSpeakerOn));
+    callSpeakerBtn.title = isSpeakerOn ? 'Matikan Loudspeaker' : 'Nyalakan Loudspeaker';
+  }
+
   function updateUI() {
     if (!callOverlay) return;
 
@@ -87,6 +203,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
       case CALL_STATE.IDLE:
         callOverlay.classList.add('hidden');
         if (callAnswerBtn) callAnswerBtn.classList.add('hidden');
+        if (callSpeakerBtn) callSpeakerBtn.classList.add('hidden');
         if (callMuteBtn) callMuteBtn.classList.add('hidden');
         stopDurationTimer();
         break;
@@ -95,23 +212,34 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
         callOverlay.classList.remove('hidden');
         if (callStatusText) callStatusText.textContent = 'Memanggil...';
         if (callAnswerBtn) callAnswerBtn.classList.add('hidden');
-        if (callMuteBtn) callMuteBtn.classList.add('hidden');
+        if (callSpeakerBtn) {
+          callSpeakerBtn.classList.remove('hidden');
+          updateSpeakerUI();
+        }
+        if (callMuteBtn) {
+          callMuteBtn.classList.remove('hidden');
+          updateMuteUI();
+        }
         break;
 
       case CALL_STATE.RINGING:
         callOverlay.classList.remove('hidden');
         if (callStatusText) callStatusText.textContent = 'Panggilan Masuk...';
         if (callAnswerBtn) callAnswerBtn.classList.remove('hidden');
+        if (callSpeakerBtn) callSpeakerBtn.classList.add('hidden');
         if (callMuteBtn) callMuteBtn.classList.add('hidden');
         break;
 
       case CALL_STATE.CONNECTED:
         callOverlay.classList.remove('hidden');
-        if (callStatusText) callStatusText.textContent = 'Terhubung (00:00)';
         if (callAnswerBtn) callAnswerBtn.classList.add('hidden');
+        if (callSpeakerBtn) {
+          callSpeakerBtn.classList.remove('hidden');
+          updateSpeakerUI();
+        }
         if (callMuteBtn) {
           callMuteBtn.classList.remove('hidden');
-          callMuteBtn.textContent = isMuted ? 'Suara Aktif' : 'Bisu';
+          updateMuteUI();
         }
         startDurationTimer();
         break;
@@ -212,21 +340,60 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
       }
     };
 
+    peerConnection.oniceconnectionstatechange = () => {
+      if (!peerConnection) return;
+      const ice = peerConnection.iceConnectionState;
+      if (ice === 'connected' || ice === 'completed') {
+        clearDisconnectTimer();
+      }
+    };
+
     peerConnection.onconnectionstatechange = () => {
       if (!peerConnection) return;
-      if (peerConnection.connectionState === 'connected') {
+      const cState = peerConnection.connectionState;
+
+      if (cState === 'connected') {
+        clearDisconnectTimer();
         setState(CALL_STATE.CONNECTED);
-      } else if (
-        peerConnection.connectionState === 'disconnected' ||
-        peerConnection.connectionState === 'failed' ||
-        peerConnection.connectionState === 'closed'
-      ) {
+        setupMediaSession();
+        startKeepAlive();
+      } else if (cState === 'disconnected') {
+        // Layar mati / ganti jaringan di HP memicu disconnected sementara.
+        // Beri toleransi 15 detik untuk auto-reconnect ICE, jangan langsung putus.
+        if (!disconnectTimer) {
+          disconnectTimer = setTimeout(() => {
+            if (peerConnection && peerConnection.connectionState === 'disconnected') {
+              endCall(false);
+            }
+          }, 15000);
+        }
+      } else if (cState === 'failed' || cState === 'closed') {
+        clearDisconnectTimer();
         endCall(false);
       }
     };
 
-    // Ambil input microphone
-    localStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+    // Ambil input microphone dengan echo cancellation & noise suppression
+    localStream = await navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+      video: false,
+    });
+
+    const audioTrack = localStream.getAudioTracks()[0];
+    if (audioTrack) {
+      audioTrack.onmute = () => {
+        // iOS mematikan capture saat app di background/layar mati (kebijakan privasi Apple)
+      };
+      audioTrack.onunmute = () => {
+        // iOS mengaktifkan kembali capture saat app kembali ke foreground
+        audioTrack.enabled = !isMuted;
+      };
+    }
+
     for (const track of localStream.getTracks()) {
       peerConnection.addTrack(track, localStream);
     }
@@ -263,6 +430,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
     setState(CALL_STATE.CALLING);
 
     try {
+      startKeepAlive();
       await setupPeerConnection();
       const offer = await peerConnection.createOffer();
       await peerConnection.setLocalDescription(offer);
@@ -288,6 +456,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
     if (state !== CALL_STATE.RINGING || !pendingOffer) return;
 
     try {
+      startKeepAlive();
       await setupPeerConnection();
       await peerConnection.setRemoteDescription(new RTCSessionDescription(pendingOffer));
       await flushPendingCandidates();
@@ -297,6 +466,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
 
       sendSignal('call:answer', { sdp: answer });
       setState(CALL_STATE.CONNECTED);
+      setupMediaSession();
       pendingOffer = null;
     } catch (err) {
       console.error('Answer call error:', err);
@@ -333,13 +503,68 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
     if (audioTrack) {
       audioTrack.enabled = !audioTrack.enabled;
       isMuted = !audioTrack.enabled;
-      if (callMuteBtn) {
-        callMuteBtn.textContent = isMuted ? 'Suara Aktif' : 'Bisu';
+      updateMuteUI();
+    }
+  }
+
+  async function toggleSpeaker() {
+    isSpeakerOn = !isSpeakerOn;
+    updateSpeakerUI();
+
+    // 1. Dukungan W3C Audio Output Devices API (Brave, Chrome)
+    if (remoteAudio && typeof remoteAudio.setSinkId === 'function') {
+      try {
+        const devices = await navigator.mediaDevices?.enumerateDevices?.();
+        const outputs = devices?.filter((d) => d.kind === 'audiooutput') || [];
+        if (outputs.length > 0) {
+          const target = isSpeakerOn
+            ? (outputs.find((d) => d.label.toLowerCase().includes('speaker')) || outputs[0])
+            : (outputs.find((d) => !d.label.toLowerCase().includes('speaker')) || outputs[0]);
+          if (target?.deviceId) {
+            await remoteAudio.setSinkId(target.deviceId);
+          }
+        }
+      } catch (err) {
+        console.warn('Speaker setSinkId error:', err);
+      }
+    }
+
+    // 2. Dukungan iOS Safari / WebKit native playback target picker (Speaker / Earpiece / Bluetooth)
+    if (remoteAudio && typeof remoteAudio.webkitShowPlaybackTargetPicker === 'function') {
+      try {
+        remoteAudio.webkitShowPlaybackTargetPicker();
+      } catch (err) {
+        console.warn('iOS audio target picker error:', err);
+      }
+    }
+  }
+
+  function handleVisibilityChange() {
+    if (typeof document === 'undefined' || state === CALL_STATE.IDLE) return;
+    if (document.visibilityState === 'visible') {
+      if (remoteAudio && remoteAudio.srcObject && remoteAudio.paused) {
+        remoteAudio.play().catch(() => {});
+      }
+      if (keepAliveAudio && keepAliveAudio.paused) {
+        keepAliveAudio.play().catch(() => {});
+      }
+      if (localStream) {
+        const audioTrack = localStream.getAudioTracks()[0];
+        if (audioTrack) {
+          audioTrack.enabled = !isMuted;
+        }
+      }
+      if (peerConnection && (peerConnection.iceConnectionState === 'disconnected' || peerConnection.connectionState === 'disconnected')) {
+        peerConnection.restartIce?.();
       }
     }
   }
 
   function endCall(notifyPartner = true) {
+    clearDisconnectTimer();
+    stopKeepAlive();
+    clearMediaSession();
+
     if (notifyPartner && state !== CALL_STATE.IDLE) {
       sendSignal('call:end', {});
     }
@@ -363,6 +588,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
     pendingOffer = null;
     pendingCandidates = [];
     isMuted = false;
+    isSpeakerOn = false;
     setState(CALL_STATE.IDLE);
   }
 
@@ -375,11 +601,17 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
     if (callAnswerBtn) {
       callAnswerBtn.addEventListener('click', answerCall);
     }
+    if (callSpeakerBtn) {
+      callSpeakerBtn.addEventListener('click', toggleSpeaker);
+    }
     if (callMuteBtn) {
       callMuteBtn.addEventListener('click', toggleMute);
     }
     if (callEndBtn) {
       callEndBtn.addEventListener('click', onEndClick);
+    }
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', handleVisibilityChange);
     }
   }
 
@@ -387,8 +619,12 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
     endCall(true);
     if (callBtn) callBtn.removeEventListener('click', startCall);
     if (callAnswerBtn) callAnswerBtn.removeEventListener('click', answerCall);
+    if (callSpeakerBtn) callSpeakerBtn.removeEventListener('click', toggleSpeaker);
     if (callMuteBtn) callMuteBtn.removeEventListener('click', toggleMute);
     if (callEndBtn) callEndBtn.removeEventListener('click', onEndClick);
+    if (typeof document !== 'undefined') {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+    }
 
     if (signalChannel && api?.client) {
       api.client.removeChannel(signalChannel);
@@ -403,6 +639,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
     answerCall,
     endCall,
     toggleMute,
+    toggleSpeaker,
     getState: () => state,
   };
 }
