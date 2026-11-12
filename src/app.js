@@ -442,6 +442,10 @@ export function createAppController({ api, db, dom, callModule = null }) {
     if (partner) {
       partnerProfile = partner;
       if (partnerNameEl) partnerNameEl.textContent = partner.display_name;
+      const avatarText = dom.partnerAvatarText || (typeof document !== 'undefined' ? document.getElementById('partner-avatar-text') : null);
+      if (avatarText && partner.display_name) {
+        avatarText.textContent = partner.display_name.trim().charAt(0).toUpperCase();
+      }
     }
 
     // Tampilkan pesan lokal dari IndexedDB
