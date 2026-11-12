@@ -22,4 +22,5 @@ test('ui_markup: style.css enforces system fonts, 100dvh viewport, and GPU-only 
   assert.ok(css.includes('prefers-reduced-motion'), 'must respect reduced motion accessibility');
   assert.ok(css.includes('backdrop-filter') && css.includes('-webkit-backdrop-filter'), 'must support iOS Safari glassmorphism blur');
   assert.ok(css.includes('grid-template-columns: 1fr auto 1fr'), 'must center iMessage header profile');
+  assert.ok(css.includes('inset: 0'), 'must anchor mobile app-shell edge-to-edge without iOS bottom gap');
 });
