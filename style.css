@@ -114,12 +114,34 @@ html, body {
   html, body {
     position: fixed;
     inset: 0;
+    width: 100%;
     height: auto;
   }
   body.keyboard-open .app-shell {
-    top: var(--app-top, 0px);
+    top: 0;
     bottom: auto;
     height: var(--app-height);
+  }
+  body.keyboard-open .chat-header {
+    padding-top: calc(4px + env(safe-area-inset-top));
+    padding-bottom: 5px;
+  }
+  body.keyboard-open .header-avatar {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+    margin-bottom: 0;
+    box-shadow: 0 2px 8px var(--accent-glow);
+  }
+  body.keyboard-open .partner-meta-center h2 {
+    font-size: 13px;
+  }
+  body.keyboard-open .sync-badge {
+    font-size: 10px;
+  }
+  body.keyboard-open .icon-btn {
+    width: 32px;
+    height: 32px;
   }
   body.keyboard-open .chat-input-bar {
     padding-bottom: 10px;
@@ -334,6 +356,7 @@ html, body {
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   z-index: 10;
+  transition: padding 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .header-left {
@@ -365,6 +388,7 @@ html, body {
   color: var(--accent);
   box-shadow: 0 4px 12px var(--accent-glow), inset 0 1px 0 rgba(255, 255, 255, 0.3);
   margin-bottom: 2px;
+  transition: width 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), font-size 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), margin-bottom 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), box-shadow 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .partner-meta-center {
@@ -379,12 +403,14 @@ html, body {
   font-weight: 600;
   letter-spacing: -0.015em;
   line-height: 1.2;
+  transition: font-size 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .sync-badge {
   font-size: 11px;
   color: var(--text-muted);
   line-height: 1.2;
+  transition: font-size 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .sync-badge.online {
@@ -414,7 +440,7 @@ html, body {
   backdrop-filter: blur(10px);
   -webkit-backdrop-filter: blur(10px);
   box-shadow: inset 0 1px 0 var(--glass-highlight);
-  transition: transform 0.12s ease, opacity 0.15s ease, background 0.15s ease;
+  transition: transform 0.12s ease, opacity 0.15s ease, background 0.15s ease, width 0.22s cubic-bezier(0.2, 0.8, 0.2, 1), height 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 .icon-btn.notif-enabled {
@@ -586,6 +612,7 @@ html, body {
   backdrop-filter: blur(20px) saturate(160%);
   -webkit-backdrop-filter: blur(20px) saturate(160%);
   z-index: 10;
+  transition: padding-bottom 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
 #message-input {
