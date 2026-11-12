@@ -819,6 +819,29 @@ export function createAppController({ api, db, dom, callModule = null }) {
           api.updateLastSeen(currentUser.id).catch(() => {});
         }
       });
+
+      if (window.visualViewport) {
+        let maxVvHeight = window.visualViewport.height;
+        const syncViewportHeight = () => {
+          const vv = window.visualViewport;
+          if (!vv) return;
+          if (vv.height > maxVvHeight) maxVvHeight = vv.height;
+          const keyboardOpen = maxVvHeight - vv.height > 120;
+          if (keyboardOpen) {
+            document.documentElement.style.setProperty('--app-height', `${vv.height}px`);
+            document.body.classList.add('keyboard-open');
+          } else {
+            document.documentElement.style.removeProperty('--app-height');
+            document.body.classList.remove('keyboard-open');
+          }
+        };
+        window.visualViewport.addEventListener('resize', syncViewportHeight);
+        window.addEventListener('orientationchange', () => {
+          maxVvHeight = 0;
+          document.documentElement.style.removeProperty('--app-height');
+          document.body.classList.remove('keyboard-open');
+        });
+      }
     }
 
     // 3. Check existing auth session
