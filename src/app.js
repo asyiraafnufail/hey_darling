@@ -762,8 +762,21 @@ export function createAppController({ api, db, dom, callModule = null }) {
 
   // --- Boot Initialization ---
   async function init() {
-    // 1. Register Service Worker
+    // 1. Register Service Worker (auto-reload once when updated SW takes control)
     if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+      if (
+        navigator.serviceWorker.controller &&
+        typeof navigator.serviceWorker.addEventListener === 'function' &&
+        typeof window !== 'undefined' &&
+        typeof window.location?.reload === 'function'
+      ) {
+        let swRefreshing = false;
+        navigator.serviceWorker.addEventListener('controllerchange', () => {
+          if (swRefreshing) return;
+          swRefreshing = true;
+          window.location.reload();
+        });
+      }
       navigator.serviceWorker.register('/sw.js').catch((err) => {
         console.warn('SW registration failed:', err);
       });
@@ -828,16 +841,25 @@ export function createAppController({ api, db, dom, callModule = null }) {
           if (vv.height > maxVvHeight) maxVvHeight = vv.height;
           const keyboardOpen = maxVvHeight - vv.height > 120;
           if (keyboardOpen) {
+            if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
+            document.documentElement.style.setProperty('--app-top', `${Math.max(0, vv.offsetTop)}px`);
             document.documentElement.style.setProperty('--app-height', `${vv.height}px`);
             document.body.classList.add('keyboard-open');
+            if (messagesContainer) {
+              messagesContainer.scrollTop = messagesContainer.scrollHeight;
+            }
           } else {
+            document.documentElement.style.removeProperty('--app-top');
             document.documentElement.style.removeProperty('--app-height');
             document.body.classList.remove('keyboard-open');
+            if (typeof window.scrollTo === 'function') window.scrollTo(0, 0);
           }
         };
         window.visualViewport.addEventListener('resize', syncViewportHeight);
+        window.visualViewport.addEventListener('scroll', syncViewportHeight);
         window.addEventListener('orientationchange', () => {
           maxVvHeight = 0;
+          document.documentElement.style.removeProperty('--app-top');
           document.documentElement.style.removeProperty('--app-height');
           document.body.classList.remove('keyboard-open');
         });
