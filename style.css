@@ -475,7 +475,9 @@ html, body {
 /* Messages Area */
 .messages-container {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior-y: contain;
   padding: 14px;
   display: flex;
   flex-direction: column;
@@ -649,6 +651,7 @@ html, body {
   justify-content: center;
   flex-shrink: 0;
   cursor: pointer;
+  touch-action: manipulation;
   box-shadow: var(--shadow-glow), inset 0 1px 0 rgba(255, 255, 255, 0.35);
   transition: transform 0.12s ease, opacity 0.15s ease;
 }

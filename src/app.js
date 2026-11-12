@@ -538,8 +538,16 @@ export function createAppController({ api, db, dom, callModule = null }) {
     const text = messageInput.value.trim();
     if (!text) return;
 
+    const hadFocus = typeof document !== 'undefined' && document.activeElement === messageInput;
     messageInput.value = '';
-    messageInput.style.height = 'auto';
+    messageInput.style.height = '';
+    if (hadFocus && typeof messageInput.focus === 'function') {
+      try {
+        messageInput.focus({ preventScroll: true });
+      } catch {
+        messageInput.focus();
+      }
+    }
 
     const tempId = 'temp-' + Date.now();
     const tempMsg = {
@@ -787,7 +795,39 @@ export function createAppController({ api, db, dom, callModule = null }) {
     if (tabRegister) tabRegister.addEventListener('click', () => setAuthMode(true));
     if (authForm) authForm.addEventListener('submit', handleAuthSubmit);
     if (logoutBtn) logoutBtn.addEventListener('click', handleLogout);
-    if (sendBtn) sendBtn.addEventListener('click', sendMessage);
+    if (sendBtn) {
+      let touchMoved = false;
+      let lastTouchSendAt = 0;
+
+      sendBtn.addEventListener('touchstart', () => {
+        touchMoved = false;
+      }, { passive: true });
+      sendBtn.addEventListener('touchmove', () => {
+        touchMoved = true;
+      }, { passive: true });
+      sendBtn.addEventListener('touchend', (e) => {
+        if (touchMoved) return;
+        if (typeof e?.preventDefault === 'function') e.preventDefault();
+        lastTouchSendAt = Date.now();
+        sendMessage();
+      });
+      sendBtn.addEventListener('mousedown', (e) => {
+        if (typeof e?.preventDefault === 'function') e.preventDefault();
+      });
+      sendBtn.addEventListener('click', () => {
+        if (Date.now() - lastTouchSendAt < 400) return;
+        sendMessage();
+      });
+    }
+    if (messagesContainer && messageInput) {
+      messagesContainer.addEventListener('click', (e) => {
+        const target = e?.target;
+        const isInteractive = typeof target?.closest === 'function' && target.closest('button, a');
+        if (!isInteractive && typeof document !== 'undefined' && document.activeElement === messageInput && typeof messageInput.blur === 'function') {
+          messageInput.blur();
+        }
+      });
+    }
     if (notifBtn) notifBtn.addEventListener('click', setupWebPush);
     if (loadOlderBtn) loadOlderBtn.addEventListener('click', loadOlderMessages);
     if (dismissIosBanner && iosBanner) {

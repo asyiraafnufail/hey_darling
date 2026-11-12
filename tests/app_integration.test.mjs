@@ -355,3 +355,51 @@ test('app_integration: renders Sent/Delivered/Read receipts, marks incoming read
     cleanup();
   }
 });
+
+test('app_integration: sendBtn keeps keyboard focus on touch/mouse and messagesContainer tap blurs input', async () => {
+  const { dom, cleanup } = createMinimalDomMocks();
+  let sendCount = 0;
+  let focusCalls = 0;
+  let blurCalls = 0;
+
+  try {
+    dom.messageInput.focus = () => { focusCalls++; };
+    dom.messageInput.blur = () => { blurCalls++; };
+    globalThis.document.activeElement = dom.messageInput;
+
+    const db = createChatDB(createMockIndexedDB());
+    const mockApi = {
+      async getSession() { return { session: { user: { id: 'u1' } } }; },
+      async syncPartnerProfile() { return { partnerProfile: { id: 'u2', display_name: 'Darling' } }; },
+      async fetchDeltaMessages() { return []; },
+      subscribeToMessages() {},
+      unsubscribeRealtime() {},
+      async sendMessage(body, senderId) {
+        sendCount++;
+        return { data: { id: `k-${sendCount}`, sender_id: senderId, body, created_at: new Date().toISOString() }, error: null };
+      },
+    };
+
+    const controller = createAppController({ api: mockApi, db, dom });
+    await controller.init();
+
+    // 1. Touch send keeps focus and dedups immediate click
+    dom.messageInput.value = 'Keep keyboard up';
+    let prevented = false;
+    dom.sendBtn.listeners.touchstart[0]();
+    dom.sendBtn.listeners.touchend[0]({ preventDefault() { prevented = true; } });
+    dom.sendBtn.listeners.click[0]();
+    await new Promise((r) => setTimeout(r, 10));
+
+    assert.strictEqual(prevented, true, 'touchend must preventDefault to keep input focused');
+    assert.strictEqual(sendCount, 1, 'touchend + click within 400ms must send once');
+    assert.strictEqual(focusCalls, 1, 'must preserve focus on messageInput');
+
+    // 2. Tap on messagesContainer blurs active messageInput
+    dom.messagesContainer.listeners.click[0]({ target: { closest: () => null } });
+    assert.strictEqual(blurCalls, 1, 'tapping chat area must blur input to dismiss keyboard');
+  } finally {
+    cleanup();
+  }
+});
+
