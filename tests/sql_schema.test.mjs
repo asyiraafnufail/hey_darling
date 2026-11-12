@@ -19,3 +19,16 @@ test('sql_schema: migration file defines required tables, constraints, rls, and 
   assert.ok(sql.includes('enable row level security'), 'must enable RLS on tables');
   assert.ok(sql.includes('is_registered_user()') && sql.includes('security definer'), 'must avoid recursive profiles RLS via security definer helper');
 });
+
+test('sql_schema: receipts & presence migration adds delivered_at, read_at, last_seen_at, and RPCs', () => {
+  const migrationPath = 'supabase/migrations/20261112_receipts_presence.sql';
+  assert.strictEqual(fs.existsSync(migrationPath), true, 'receipts/presence migration file must exist');
+
+  const sql = fs.readFileSync(migrationPath, 'utf8');
+  assert.ok(sql.includes('delivered_at'), 'must add delivered_at column');
+  assert.ok(sql.includes('read_at'), 'must add read_at column');
+  assert.ok(sql.includes('last_seen_at'), 'must add last_seen_at column');
+  assert.ok(sql.includes('mark_messages_delivered'), 'must define mark_messages_delivered RPC');
+  assert.ok(sql.includes('mark_messages_read'), 'must define mark_messages_read RPC');
+  assert.ok(sql.includes('supabase_realtime add table public.profiles'), 'must enable realtime for profiles table');
+});

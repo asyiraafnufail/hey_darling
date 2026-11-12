@@ -17,6 +17,7 @@ comment on table public.allowed_emails is 'Daftar email yang diizinkan mendaftar
 create table public.profiles (
     id uuid primary key references auth.users(id) on delete cascade,
     display_name text not null,
+    last_seen_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
 );
 
@@ -75,6 +76,8 @@ create table public.messages (
     id uuid primary key default gen_random_uuid(),
     sender_id uuid not null references auth.users(id) on delete cascade,
     body text not null check (char_length(body) between 1 and 2000),
+    delivered_at timestamptz default null,
+    read_at timestamptz default null,
     created_at timestamptz not null default now()
 );
 
@@ -95,6 +98,19 @@ to authenticated
 with check (
     auth.uid() = sender_id and
     public.is_registered_user()
+);
+
+drop policy if exists "Recipient dapat update status pesan" on public.messages;
+create policy "Recipient dapat update status pesan"
+on public.messages for update
+to authenticated
+using (
+    public.is_registered_user() and
+    sender_id != auth.uid()
+)
+with check (
+    public.is_registered_user() and
+    sender_id != auth.uid()
 );
 
 -- 5. Trigger Pengunci 2 Pengguna Sah (handle_new_user)

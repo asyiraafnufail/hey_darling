@@ -60,6 +60,8 @@ export function createChatDB(customIdb = null) {
           sender_id: String(msg.sender_id),
           body: String(msg.body),
           created_at: String(msg.created_at),
+          delivered_at: msg.delivered_at ? String(msg.delivered_at) : null,
+          read_at: msg.read_at ? String(msg.read_at) : null,
         });
         count++;
       }

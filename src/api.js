@@ -1,14 +1,15 @@
 /**
- * Hey Darling: Modul API & Jaringan Supabase
- * Mengelola otentikasi, delta sync dengan pemilihan kolom eksplisit, dan Realtime WebSocket.
+ * Hey Darling: Supabase API & Network Module
+ * Handles authentication, delta sync with explicit column selection, receipts, presence, and Realtime WebSocket.
  */
 
 import { CONFIG } from './config.js';
 
-const SELECT_MESSAGE_COLUMNS = 'id, sender_id, body, created_at';
+const SELECT_MESSAGE_COLUMNS = 'id, sender_id, body, created_at, delivered_at, read_at';
 
 export function createApi(supabaseClient) {
   let activeRealtimeChannel = null;
+  let activePresenceChannel = null;
 
   async function getSession() {
     const { data, error } = await supabaseClient.auth.getSession();
@@ -40,12 +41,13 @@ export function createApi(supabaseClient) {
 
   async function logout() {
     unsubscribeRealtime();
+    unsubscribePresence();
     await supabaseClient.auth.signOut();
   }
 
   /**
-   * Mengambil pesan baru setelah sinceTimestamp (Delta Sync).
-   * Jika sinceTimestamp null (buka pertama kali), mengambil pesan terbaru hingga limit.
+   * Fetch new messages after sinceTimestamp (Delta Sync).
+   * If sinceTimestamp is null (initial load), fetches the newest messages up to limit.
    */
   async function fetchDeltaMessages(sinceTimestamp = null, limit = 50) {
     let query = supabaseClient
@@ -62,7 +64,7 @@ export function createApi(supabaseClient) {
       if (error) throw error;
       return data || [];
     } else {
-      // Ambil 'limit' pesan terbaru (descending), lalu balik urutannya (ascending)
+      // Fetch latest 'limit' messages (descending), then reverse to ascending order
       query = query
         .order('created_at', { ascending: false })
         .limit(limit);
@@ -75,7 +77,7 @@ export function createApi(supabaseClient) {
   }
 
   /**
-   * Mengambil pesan lebih lama sebelum beforeTimestamp (Pagination scroll-up).
+   * Fetch older messages before beforeTimestamp (Scroll-up pagination).
    */
   async function fetchOlderMessages(beforeTimestamp, limit = 50) {
     const { data, error } = await supabaseClient
@@ -90,10 +92,39 @@ export function createApi(supabaseClient) {
     return list.reverse();
   }
 
+  async function fetchMessageStatuses(messageIds) {
+    if (!Array.isArray(messageIds) || messageIds.length === 0) return [];
+    const { data, error } = await supabaseClient
+      .from('messages')
+      .select('id, delivered_at, read_at')
+      .in('id', messageIds);
+
+    if (error) throw error;
+    return data || [];
+  }
+
+  async function markMessagesDelivered(messageIds) {
+    if (!Array.isArray(messageIds) || messageIds.length === 0) return 0;
+    const { data, error } = await supabaseClient.rpc('mark_messages_delivered', {
+      message_ids: messageIds,
+    });
+    if (error) throw error;
+    return data || 0;
+  }
+
+  async function markMessagesRead(messageIds) {
+    if (!Array.isArray(messageIds) || messageIds.length === 0) return 0;
+    const { data, error } = await supabaseClient.rpc('mark_messages_read', {
+      message_ids: messageIds,
+    });
+    if (error) throw error;
+    return data || 0;
+  }
+
   async function sendMessage(body, senderId) {
     const trimmed = body.trim();
-    if (!trimmed) throw new Error('Pesan tidak boleh kosong');
-    if (trimmed.length > 2000) throw new Error('Pesan melebihi batas 2000 karakter');
+    if (!trimmed) throw new Error('Message cannot be empty');
+    if (trimmed.length > 2000) throw new Error('Message exceeds 2000 character limit');
 
     const { data, error } = await supabaseClient
       .from('messages')
@@ -107,10 +138,10 @@ export function createApi(supabaseClient) {
     return { data, error };
   }
 
-  function subscribeToMessages(onNewMessage) {
+  function subscribeToMessages(onNewMessage, onMessageUpdate = null, onPartnerProfileUpdate = null) {
     unsubscribeRealtime();
 
-    activeRealtimeChannel = supabaseClient
+    let channel = supabaseClient
       .channel('public:messages')
       .on(
         'postgres_changes',
@@ -121,7 +152,29 @@ export function createApi(supabaseClient) {
           }
         }
       )
-      .subscribe();
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'messages' },
+        (payload) => {
+          if (payload.new && onMessageUpdate) {
+            onMessageUpdate(payload.new);
+          }
+        }
+      );
+
+    if (onPartnerProfileUpdate) {
+      channel = channel.on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'profiles' },
+        (payload) => {
+          if (payload.new) {
+            onPartnerProfileUpdate(payload.new);
+          }
+        }
+      );
+    }
+
+    activeRealtimeChannel = channel.subscribe();
 
     return {
       unsubscribe: unsubscribeRealtime,
@@ -138,11 +191,61 @@ export function createApi(supabaseClient) {
   async function syncPartnerProfile(currentUserId) {
     const { data, error } = await supabaseClient
       .from('profiles')
-      .select('id, display_name')
+      .select('id, display_name, last_seen_at')
       .neq('id', currentUserId)
       .maybeSingle();
 
     return { partnerProfile: data || null, error };
+  }
+
+  async function updateLastSeen(userId) {
+    if (!userId) return { error: null };
+    const now = new Date().toISOString();
+    const { error } = await supabaseClient
+      .from('profiles')
+      .update({ last_seen_at: now, updated_at: now })
+      .eq('id', userId);
+
+    return { error };
+  }
+
+  function subscribePresence(currentUserId, onPresenceChange) {
+    unsubscribePresence();
+    if (!currentUserId || typeof supabaseClient.channel !== 'function') return null;
+
+    const channel = supabaseClient.channel('presence:chat', {
+      config: { presence: { key: currentUserId } },
+    });
+
+    activePresenceChannel = channel
+      .on('presence', { event: 'sync' }, () => {
+        const state = channel.presenceState ? channel.presenceState() : {};
+        if (onPresenceChange) onPresenceChange(state);
+      })
+      .subscribe(async (status) => {
+        if (status === 'SUBSCRIBED') {
+          await channel.track?.({
+            user_id: currentUserId,
+            online_at: new Date().toISOString(),
+          });
+        }
+      });
+
+    return {
+      unsubscribe: unsubscribePresence,
+    };
+  }
+
+  function unsubscribePresence() {
+    if (activePresenceChannel) {
+      try {
+        activePresenceChannel.untrack?.();
+      } catch {
+        // noop
+      }
+      supabaseClient.removeChannel(activePresenceChannel);
+      activePresenceChannel = null;
+    }
   }
 
   async function savePushSubscription(userId, subscription, userAgent = '') {
@@ -175,10 +278,16 @@ export function createApi(supabaseClient) {
     logout,
     fetchDeltaMessages,
     fetchOlderMessages,
+    fetchMessageStatuses,
+    markMessagesDelivered,
+    markMessagesRead,
     sendMessage,
     subscribeToMessages,
     unsubscribeRealtime,
     syncPartnerProfile,
+    updateLastSeen,
+    subscribePresence,
+    unsubscribePresence,
     savePushSubscription,
   };
 }

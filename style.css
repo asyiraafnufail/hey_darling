@@ -31,6 +31,8 @@
 
   --border: rgba(255, 255, 255, 0.12);
   --danger: #ff453a;
+  --status-read: #5ac8fa;
+  --status-online: #34d363;
   --skeleton: rgba(255, 255, 255, 0.08);
   --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.45);
   --shadow-glow: 0 4px 18px rgba(233, 64, 109, 0.35);
@@ -65,6 +67,8 @@
     --bubble-me-border: rgba(255, 255, 255, 0.35);
 
     --border: rgba(0, 0, 0, 0.08);
+    --status-read: #007aff;
+    --status-online: #22ab4a;
     --skeleton: rgba(0, 0, 0, 0.06);
     --shadow-card: 0 16px 40px rgba(0, 0, 0, 0.08);
   }
@@ -365,6 +369,11 @@ html, body {
   line-height: 1.2;
 }
 
+.sync-badge.online {
+  color: var(--status-online);
+  font-weight: 600;
+}
+
 .header-right,
 .header-actions {
   display: flex;
@@ -524,8 +533,18 @@ html, body {
   margin-top: 3px;
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 5px;
   padding: 0 4px;
+}
+
+.msg-status {
+  font-size: 11px;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.msg-status.read {
+  color: var(--status-read);
 }
 
 .msg-retry-btn {

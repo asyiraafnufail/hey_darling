@@ -1,7 +1,13 @@
 import { test } from 'node:test';
 import assert from 'node:assert';
 import fs from 'node:fs';
-import { createAppController, urlBase64ToUint8Array, MAX_VISIBLE_DOM_NODES } from '../src/app.js';
+import {
+  createAppController,
+  urlBase64ToUint8Array,
+  MAX_VISIBLE_DOM_NODES,
+  formatLastSeen,
+  formatMessageStatus,
+} from '../src/app.js';
 import { createChatDB } from '../src/db.js';
 import { createMockIndexedDB } from './helpers/mock-idb.mjs';
 
@@ -234,6 +240,118 @@ test('app_integration: Enter inserts newline on mobile touch devices and sends o
     } else {
       globalThis.window = prevWindow;
     }
+    cleanup();
+  }
+});
+
+test('app_integration: formatMessageStatus and formatLastSeen return English text labels', () => {
+  assert.deepStrictEqual(formatMessageStatus({ id: '1' }), { text: 'Sent', isRead: false });
+  assert.deepStrictEqual(formatMessageStatus({ id: '1', delivered_at: '2026-11-12T01:00:00Z' }), { text: 'Delivered', isRead: false });
+  assert.deepStrictEqual(formatMessageStatus({ id: '1', delivered_at: '2026-11-12T01:00:00Z', read_at: '2026-11-12T01:05:00Z' }), { text: 'Read', isRead: true });
+
+  assert.strictEqual(formatLastSeen(null), 'Offline');
+  assert.strictEqual(formatLastSeen('not-a-date'), 'Offline');
+  assert.strictEqual(formatLastSeen(new Date(Date.now() - 10 * 1000).toISOString()), 'Last seen just now');
+  assert.strictEqual(formatLastSeen(new Date(Date.now() - 5 * 60 * 1000).toISOString()), 'Last seen 5m ago');
+  assert.ok(formatLastSeen(new Date(Date.now() - 3 * 3600 * 1000).toISOString()).startsWith('Last seen '));
+});
+
+test('app_integration: renders Sent/Delivered/Read receipts, marks incoming read, and toggles Online/Last seen status', async () => {
+  const { dom, cleanup } = createMinimalDomMocks();
+  const markedRead = [];
+  const markedDelivered = [];
+  let onNewMsgCb = null;
+  let onUpdateMsgCb = null;
+  let onPresenceCb = null;
+
+  try {
+    const db = createChatDB(createMockIndexedDB());
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+
+    const mockApi = {
+      async getSession() { return { session: { user: { id: 'u1' } } }; },
+      async syncPartnerProfile() {
+        return { partnerProfile: { id: 'u2', display_name: 'Darling', last_seen_at: fiveMinAgo } };
+      },
+      async fetchDeltaMessages() {
+        return [
+          { id: 'm-sent', sender_id: 'u1', body: 'Mine', created_at: '2026-11-12T01:00:00Z', delivered_at: null, read_at: null },
+          { id: 'm-partner', sender_id: 'u2', body: 'Yours', created_at: '2026-11-12T01:01:00Z', delivered_at: null, read_at: null },
+        ];
+      },
+      async fetchMessageStatuses() { return []; },
+      async markMessagesRead(ids) { markedRead.push(...ids); return ids.length; },
+      async markMessagesDelivered(ids) { markedDelivered.push(...ids); return ids.length; },
+      async updateLastSeen() { return { error: null }; },
+      subscribeToMessages(onNew, onUpdate) {
+        onNewMsgCb = onNew;
+        onUpdateMsgCb = onUpdate;
+      },
+      unsubscribeRealtime() {},
+      subscribePresence(_uid, cb) { onPresenceCb = cb; },
+      unsubscribePresence() {},
+    };
+
+    const controller = createAppController({ api: mockApi, db, dom });
+    await controller.init();
+
+    // 1. Incoming partner message is marked read while visible, and has no receipt label
+    assert.deepStrictEqual(markedRead, ['m-partner']);
+    assert.strictEqual(globalThis.document.getElementById('status-m-partner'), null);
+
+    // 2. Sent message shows " • Sent" initially
+    const statusEl = globalThis.document.getElementById('status-m-sent');
+    assert.ok(statusEl);
+    assert.strictEqual(statusEl.textContent, ' • Sent');
+    assert.strictEqual(statusEl.className, 'msg-status');
+
+    // 3. Realtime UPDATE -> Delivered
+    await onUpdateMsgCb({
+      id: 'm-sent',
+      sender_id: 'u1',
+      body: 'Mine',
+      created_at: '2026-11-12T01:00:00Z',
+      delivered_at: '2026-11-12T01:02:00Z',
+      read_at: null,
+    });
+    assert.strictEqual(statusEl.textContent, ' • Delivered');
+
+    // 4. Realtime UPDATE -> Read
+    await onUpdateMsgCb({
+      id: 'm-sent',
+      sender_id: 'u1',
+      body: 'Mine',
+      created_at: '2026-11-12T01:00:00Z',
+      delivered_at: '2026-11-12T01:02:00Z',
+      read_at: '2026-11-12T01:03:00Z',
+    });
+    assert.strictEqual(statusEl.textContent, ' • Read');
+    assert.strictEqual(statusEl.className, 'msg-status read');
+
+    // 5. Header shows Last seen initially, then Online when partner joins presence, then Last seen when leaves
+    assert.strictEqual(dom.syncStatusEl.textContent, 'Last seen 5m ago');
+    onPresenceCb({ u1: [{}], u2: [{}] });
+    assert.strictEqual(dom.syncStatusEl.textContent, 'Online');
+    assert.strictEqual(dom.syncStatusEl.classList.contains('online'), true);
+
+    onPresenceCb({ u1: [{}] });
+    assert.strictEqual(dom.syncStatusEl.textContent, 'Last seen just now');
+    assert.strictEqual(dom.syncStatusEl.classList.contains('online'), false);
+
+    // 6. Incoming message while document is hidden marks delivered instead of read
+    globalThis.document.visibilityState = 'hidden';
+    await onNewMsgCb({
+      id: 'm-partner-2',
+      sender_id: 'u2',
+      body: 'Locked screen msg',
+      created_at: '2026-11-12T01:04:00Z',
+      delivered_at: null,
+      read_at: null,
+    });
+    assert.deepStrictEqual(markedDelivered, ['m-partner-2']);
+
+    controller.stopRealtime();
+  } finally {
     cleanup();
   }
 });

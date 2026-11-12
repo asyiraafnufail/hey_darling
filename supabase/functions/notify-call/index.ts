@@ -49,10 +49,10 @@ Deno.serve(async (req) => {
         .select('display_name')
         .eq('id', callerId)
         .maybeSingle();
-      callerName = callerProfile?.display_name || 'Pasangan';
+      callerName = callerProfile?.display_name || 'Partner';
     }
 
-    // 2. Ambil push subscriptions milik pasangan untuk bangunkan device jika layar mati
+    // 2. Fetch partner push subscriptions to wake device when screen is locked
     const { data: subs, error: subsErr } = await supabase
       .from('push_subscriptions')
       .select('endpoint, p256dh, auth')
@@ -67,8 +67,8 @@ Deno.serve(async (req) => {
     }
 
     const notificationPayload = {
-      title: 'Panggilan Masuk',
-      body: `${callerName} sedang memanggil Anda...`,
+      title: 'Incoming Call',
+      body: `${callerName} is calling you...`,
       tag: 'incoming-call',
       url: '/',
     };

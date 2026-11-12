@@ -3,7 +3,7 @@
  * Strategi Cache-First untuk aset statis (< 10ms muat ulang) dan W3C Web Push (layar mati).
  */
 
-const CACHE_NAME = 'hey_darling_v4';
+const CACHE_NAME = 'hey_darling_v5';
 const STATIC_ASSETS = [
   '/',
   '/index.html',
@@ -64,7 +64,7 @@ self.addEventListener('fetch', (event) => {
 self.addEventListener('push', (event) => {
   let payload = {
     title: 'Hey Darling',
-    body: 'Pesan baru masuk',
+    body: 'New message received',
     tag: 'chat-msg',
     url: '/',
   };
@@ -94,7 +94,31 @@ self.addEventListener('push', (event) => {
     },
   };
 
-  event.waitUntil(self.registration.showNotification(payload.title, options));
+  const tasks = [self.registration.showNotification(payload.title, options)];
+
+  if (!isCall && payload.ackUrl && payload.messageId && payload.ackToken) {
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timeoutId = controller ? setTimeout(() => controller.abort(), 4000) : null;
+    const headers = { 'Content-Type': 'text/plain' };
+    if (payload.ackKey) headers.apikey = payload.ackKey;
+
+    const ackPromise = fetch(payload.ackUrl, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({
+        action: 'ack_delivered',
+        message_id: payload.messageId,
+        token: payload.ackToken,
+      }),
+      signal: controller?.signal,
+    }).finally(() => {
+      if (timeoutId) clearTimeout(timeoutId);
+    });
+
+    tasks.push(ackPromise);
+  }
+
+  event.waitUntil(Promise.allSettled(tasks));
 });
 
 self.addEventListener('notificationclick', (event) => {

@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
@@ -15,54 +15,54 @@
 </head>
 <body>
   <div id="app" class="app-shell">
-    <!-- Layar Loading Awal (Skeleton saat cek session) -->
+    <!-- Initial Boot Skeleton -->
     <section id="boot-screen" class="screen">
-      <div class="boot-loader" aria-label="Memuat aplikasi">
+      <div class="boot-loader" aria-label="Loading application">
         <div class="skeleton-line short"></div>
         <div class="skeleton-line medium"></div>
       </div>
     </section>
 
-    <!-- Layar Login & Registrasi -->
-    <section id="auth-screen" class="screen hidden" aria-label="Masuk atau Daftar">
+    <!-- Login & Sign Up Screen -->
+    <section id="auth-screen" class="screen hidden" aria-label="Sign In or Sign Up">
       <div class="auth-card">
         <div class="auth-brand">
           <svg class="brand-heart" viewBox="0 0 24 24" width="32" height="32" aria-hidden="true">
             <path fill="currentColor" d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/>
           </svg>
           <h1>Hey Darling</h1>
-          <p class="auth-subtitle">Ruang privat berdua</p>
+          <p class="auth-subtitle">Private space for two</p>
         </div>
 
         <div class="auth-tabs" role="tablist">
-          <button type="button" id="tab-login" class="tab-btn active" role="tab" aria-selected="true">Masuk</button>
-          <button type="button" id="tab-register" class="tab-btn" role="tab" aria-selected="false">Daftar</button>
+          <button type="button" id="tab-login" class="tab-btn active" role="tab" aria-selected="true">Sign In</button>
+          <button type="button" id="tab-register" class="tab-btn" role="tab" aria-selected="false">Sign Up</button>
         </div>
 
         <form id="auth-form" class="auth-form">
           <div id="display-name-group" class="field-group hidden">
-            <label for="auth-name">Nama Panggilan</label>
-            <input type="text" id="auth-name" placeholder="Contoh: Sayang" maxlength="40" autocomplete="nickname">
+            <label for="auth-name">Nickname</label>
+            <input type="text" id="auth-name" placeholder="e.g. Darling" maxlength="40" autocomplete="nickname">
           </div>
           <div class="field-group">
             <label for="auth-email">Email</label>
-            <input type="email" id="auth-email" required placeholder="nama@email.com" autocomplete="email">
+            <input type="email" id="auth-email" required placeholder="name@email.com" autocomplete="email">
           </div>
           <div class="field-group">
             <label for="auth-password">Password</label>
-            <input type="password" id="auth-password" required minlength="6" placeholder="Minimal 6 karakter" autocomplete="current-password">
+            <input type="password" id="auth-password" required minlength="6" placeholder="At least 6 characters" autocomplete="current-password">
           </div>
           <p id="auth-error" class="error-text hidden" role="alert"></p>
-          <button type="submit" id="auth-submit" class="primary-btn">Masuk</button>
+          <button type="submit" id="auth-submit" class="primary-btn">Sign In</button>
         </form>
       </div>
     </section>
 
-    <!-- Layar Utama Chat -->
-    <section id="chat-screen" class="screen hidden" aria-label="Percakapan">
+    <!-- Main Chat Screen -->
+    <section id="chat-screen" class="screen hidden" aria-label="Conversation">
       <header class="chat-header">
         <div class="header-left">
-          <button type="button" id="logout-btn" class="icon-btn" title="Keluar" aria-label="Keluar">
+          <button type="button" id="logout-btn" class="icon-btn" title="Sign Out" aria-label="Sign Out">
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
               <path fill="currentColor" d="M17 7l-1.41 1.41L18.17 11H8v2h10.17l-2.58 2.58L17 17l5-5zM4 5h8V3H4c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h8v-2H4V5z"/>
             </svg>
@@ -74,18 +74,18 @@
             <span id="partner-avatar-text">D</span>
           </div>
           <div class="partner-meta-center">
-            <h2 id="partner-name">Pasangan</h2>
-            <span id="sync-status" class="sync-badge">Terhubung</span>
+            <h2 id="partner-name">Partner</h2>
+            <span id="sync-status" class="sync-badge">Connecting...</span>
           </div>
         </div>
 
         <div class="header-right header-actions">
-          <button type="button" id="notif-btn" class="icon-btn" title="Aktifkan Notifikasi" aria-label="Aktifkan Notifikasi">
+          <button type="button" id="notif-btn" class="icon-btn" title="Enable Notifications" aria-label="Enable Notifications">
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
               <path fill="currentColor" d="M12 22c1.1 0 2-.9 2-2h-4c0 1.1.9 2 2 2zm6-6v-5c0-3.07-1.63-5.64-4.5-6.32V4c0-.83-.67-1.5-1.5-1.5s-1.5.67-1.5 1.5v.68C7.64 5.36 6 7.92 6 11v5l-2 2v1h16v-1l-2-2z"/>
             </svg>
           </button>
-          <button type="button" id="call-btn" class="icon-btn" title="Panggilan Suara" aria-label="Panggilan Suara">
+          <button type="button" id="call-btn" class="icon-btn" title="Voice Call" aria-label="Voice Call">
             <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
               <path fill="currentColor" d="M6.62 10.79c1.44 2.83 3.76 5.14 6.59 6.59l2.2-2.2c.27-.27.67-.36 1.02-.24 1.12.37 2.33.57 3.57.57.55 0 1 .45 1 1V20c0 .55-.45 1-1 1-9.39 0-17-7.61-17-17 0-.55.45-1 1-1h3.5c.55 0 1 .45 1 1 0 1.25.2 2.45.57 3.57.11.35.03.74-.25 1.02l-2.2 2.2z"/>
             </svg>
@@ -93,16 +93,16 @@
         </div>
       </header>
 
-      <!-- Panduan Wajib iOS Safari -->
+      <!-- iOS Safari Install Guide -->
       <div id="ios-install-banner" class="info-banner hidden" role="note">
-        <span>Ketuk ikon <strong>Bagikan (Share)</strong> &rarr; <strong>Tambahkan ke Layar Utama (Add to Home Screen)</strong> di Safari untuk mengaktifkan notifikasi pesan.</span>
-        <button type="button" id="dismiss-ios-banner" class="close-banner" aria-label="Tutup">&times;</button>
+        <span>Tap <strong>Share</strong> &rarr; <strong>Add to Home Screen</strong> in Safari to enable message notifications.</span>
+        <button type="button" id="dismiss-ios-banner" class="close-banner" aria-label="Close">&times;</button>
       </div>
 
       <main id="messages-container" class="messages-container">
-        <button type="button" id="load-older-btn" class="load-older-btn hidden">Muat pesan sebelumnya</button>
+        <button type="button" id="load-older-btn" class="load-older-btn hidden">Load older messages</button>
 
-        <!-- Skeleton Loading Ringan Saat Sinkronisasi Awal -->
+        <!-- Skeleton Loader During Initial Sync -->
         <div id="skeleton-loader" class="skeleton-container hidden" aria-hidden="true">
           <div class="skeleton-bubble left"></div>
           <div class="skeleton-bubble right"></div>
@@ -118,10 +118,10 @@
           id="message-input"
           rows="1"
           maxlength="2000"
-          placeholder="Tulis pesan..."
-          aria-label="Tulis pesan"
+          placeholder="Type a message..."
+          aria-label="Type a message"
         ></textarea>
-        <button type="button" id="send-btn" class="send-btn" aria-label="Kirim pesan">
+        <button type="button" id="send-btn" class="send-btn" aria-label="Send message">
           <svg viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
             <path fill="currentColor" d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/>
           </svg>
@@ -129,18 +129,18 @@
       </footer>
     </section>
 
-    <!-- Overlay Panggilan Suara (Fase 2) -->
-    <div id="call-overlay" class="call-overlay hidden" role="dialog" aria-modal="true" aria-label="Panggilan Suara">
+    <!-- Voice Call Overlay -->
+    <div id="call-overlay" class="call-overlay hidden" role="dialog" aria-modal="true" aria-label="Voice Call">
       <div class="call-card">
         <div class="call-avatar">
           <svg viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
             <path fill="currentColor" d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/>
           </svg>
         </div>
-        <h3 id="call-partner-name">Pasangan</h3>
-        <p id="call-status-text">Memanggil...</p>
+        <h3 id="call-partner-name">Partner</h3>
+        <p id="call-status-text">Calling...</p>
         <div class="call-controls">
-          <button type="button" id="call-answer-btn" class="call-ctrl-btn accept hidden" title="Angkat" aria-label="Angkat">
+          <button type="button" id="call-answer-btn" class="call-ctrl-btn accept hidden" title="Answer" aria-label="Answer">
             <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
               <path fill="currentColor" d="M20.01 15.38c-1.23 0-2.42-.2-3.53-.56a.977.977 0 0 0-1.01.24l-1.57 1.97c-2.83-1.35-5.48-3.9-6.89-6.83l1.95-1.66c.27-.28.35-.67.24-1.02-.37-1.11-.56-2.3-.56-3.53 0-.54-.45-.99-.99-.99H4.19C3.65 3 3 3.24 3 3.99 3 13.28 10.73 21 20.01 21c.71 0 .99-.63.99-1.18v-3.45c0-.54-.45-.99-.99-.99z"/>
             </svg>
@@ -153,7 +153,7 @@
               <path fill="currentColor" d="M18.5 12c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM5 9v6h4l5 5V4L9 9H5z"/>
             </svg>
           </button>
-          <button type="button" id="call-mute-btn" class="call-ctrl-btn secondary hidden" title="Bisu" aria-label="Bisu">
+          <button type="button" id="call-mute-btn" class="call-ctrl-btn secondary hidden" title="Mute" aria-label="Mute">
             <svg class="icon-mic-on" viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
               <path fill="currentColor" d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm5.3-3c0 3-2.54 5.1-5.3 5.1S6.7 14 6.7 11H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c3.28-.48 6-3.3 6-6.72h-1.7z"/>
             </svg>
@@ -161,7 +161,7 @@
               <path fill="currentColor" d="M19 11h-1.7c0 .74-.16 1.43-.43 2.05l1.23 1.23c.56-.98.9-2.09.9-3.28zm-4.02.17c0-.06.02-.11.02-.17V5c0-1.66-1.34-3-3-3S9 3.34 9 5v.18l5.98 5.99zM4.27 3L3 4.27l6.01 6.01V11c0 1.66 1.33 3 2.99 3 .22 0 .44-.03.65-.08l1.66 1.66c-.71.33-1.5.52-2.31.52-2.76 0-5.3-2.1-5.3-5.1H5c0 3.41 2.72 6.23 6 6.72V21h2v-3.28c.91-.13 1.77-.45 2.54-.9L19.73 21 21 19.73 4.27 3z"/>
             </svg>
           </button>
-          <button type="button" id="call-end-btn" class="call-ctrl-btn reject" title="Tutup" aria-label="Tutup">
+          <button type="button" id="call-end-btn" class="call-ctrl-btn reject" title="End Call" aria-label="End Call">
             <svg viewBox="0 0 24 24" width="24" height="24" aria-hidden="true">
               <path fill="currentColor" d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85-.18.18-.43.28-.7.28-.28 0-.53-.11-.71-.29L.29 13.08a.99.99 0 0 1 0-1.41C2.63 9.34 6.99 8 12 8s9.37 1.34 11.71 3.67c.39.39.39 1.02 0 1.41l-2.48 2.48c-.18.18-.43.29-.71.29-.27 0-.52-.11-.7-.28-.79-.74-1.69-1.36-2.67-1.85-.33-.16-.56-.5-.56-.9v-3.1C15.15 9.25 13.6 9 12 9z"/>
             </svg>

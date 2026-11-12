@@ -1,7 +1,7 @@
 {
   "name": "Hey Darling",
   "short_name": "Darling",
-  "description": "Aplikasi chat privat dan panggilan suara 1-on-1 ringan.",
+  "description": "Lightweight 1-on-1 private chat and voice calls.",
   "start_url": "/",
   "scope": "/",
   "display": "standalone",

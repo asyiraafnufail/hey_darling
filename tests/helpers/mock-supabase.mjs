@@ -2,6 +2,7 @@
 export function createMockSupabase(options = {}) {
   const queries = {};
   const channels = [];
+  const rpcCalls = [];
 
   function makeQueryBuilder(table) {
     const state = {
@@ -11,6 +12,7 @@ export function createMockSupabase(options = {}) {
       order: null,
       limitCount: null,
       insertedData: null,
+      updatedData: null,
       upsertedData: null,
       upsertOpts: null,
     };
@@ -29,8 +31,16 @@ export function createMockSupabase(options = {}) {
         state.filters.lt = { column, value };
         return builder;
       },
+      eq(column, value) {
+        state.filters.eq = { column, value };
+        return builder;
+      },
       neq(column, value) {
         state.filters.neq = { column, value };
+        return builder;
+      },
+      in(column, values) {
+        state.filters.in = { column, values };
         return builder;
       },
       order(column, opts) {
@@ -43,6 +53,10 @@ export function createMockSupabase(options = {}) {
       },
       insert(data) {
         state.insertedData = data;
+        return builder;
+      },
+      update(data) {
+        state.updatedData = data;
         return builder;
       },
       upsert(data, opts) {
@@ -72,11 +86,17 @@ export function createMockSupabase(options = {}) {
   }
 
   return {
+    rpcCalls,
     getLastQuery(table) {
       return queries[table];
     },
     getChannels() {
       return channels;
+    },
+    async rpc(name, params) {
+      rpcCalls.push({ name, params });
+      if (options.rpcError) return { data: null, error: options.rpcError };
+      return { data: options.rpcData ?? 1, error: null };
     },
     auth: {
       async getSession() {
@@ -103,17 +123,32 @@ export function createMockSupabase(options = {}) {
     from(table) {
       return makeQueryBuilder(table);
     },
-    channel(name) {
+    channel(name, config = {}) {
+      let presState = options.presenceState || {};
       const ch = {
         name,
+        config,
         handlers: [],
         unsubscribed: false,
+        tracked: null,
         on(type, filter, cb) {
           ch.handlers.push({ type, filter, cb });
           return ch;
         },
-        subscribe() {
+        subscribe(cb) {
+          if (cb) setTimeout(() => cb('SUBSCRIBED'), 0);
           return ch;
+        },
+        presenceState() {
+          return presState;
+        },
+        async track(payload) {
+          ch.tracked = payload;
+          return 'ok';
+        },
+        async untrack() {
+          ch.tracked = null;
+          return 'ok';
         },
         unsubscribe() {
           ch.unsubscribed = true;

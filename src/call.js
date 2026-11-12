@@ -65,12 +65,12 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
     if (callTimerInterval) return;
     callDurationSeconds = 0;
     if (callStatusText) {
-      callStatusText.textContent = 'Terhubung (00:00)';
+      callStatusText.textContent = 'Connected (00:00)';
     }
     callTimerInterval = setInterval(() => {
       callDurationSeconds++;
       if (callStatusText) {
-        callStatusText.textContent = `Terhubung (${formatDuration(callDurationSeconds)})`;
+        callStatusText.textContent = `Connected (${formatDuration(callDurationSeconds)})`;
       }
     }, 1000);
   }
@@ -118,11 +118,11 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
   function setupMediaSession() {
     if (typeof navigator === 'undefined' || !('mediaSession' in navigator)) return;
     try {
-      const partnerName = activePartner?.display_name || partnerProfile?.display_name || 'Pasangan';
+      const partnerName = activePartner?.display_name || partnerProfile?.display_name || 'Partner';
       if (typeof MediaMetadata !== 'undefined') {
         navigator.mediaSession.metadata = new MediaMetadata({
           title: partnerName,
-          artist: 'Hey Darling • Panggilan Suara',
+          artist: 'Hey Darling • Voice Call',
         });
       }
       navigator.mediaSession.playbackState = 'playing';
@@ -167,7 +167,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
       callMuteBtn.classList.remove('active');
     }
     callMuteBtn.setAttribute?.('aria-pressed', String(isMuted));
-    callMuteBtn.title = isMuted ? 'Nyalakan Mic' : 'Matikan Mic';
+    callMuteBtn.title = isMuted ? 'Unmute Mic' : 'Mute Mic';
   }
 
   function updateSpeakerUI() {
@@ -189,14 +189,14 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
       callSpeakerBtn.classList.remove('active');
     }
     callSpeakerBtn.setAttribute?.('aria-pressed', String(isSpeakerOn));
-    callSpeakerBtn.title = isSpeakerOn ? 'Matikan Loudspeaker' : 'Nyalakan Loudspeaker';
+    callSpeakerBtn.title = isSpeakerOn ? 'Turn Off Speaker' : 'Turn On Speaker';
   }
 
   function updateUI() {
     if (!callOverlay) return;
 
     if (callPartnerName) {
-      callPartnerName.textContent = activePartner?.display_name || partnerProfile?.display_name || 'Pasangan';
+      callPartnerName.textContent = activePartner?.display_name || partnerProfile?.display_name || 'Partner';
     }
 
     switch (state) {
@@ -210,7 +210,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
 
       case CALL_STATE.CALLING:
         callOverlay.classList.remove('hidden');
-        if (callStatusText) callStatusText.textContent = 'Memanggil...';
+        if (callStatusText) callStatusText.textContent = 'Calling...';
         if (callAnswerBtn) callAnswerBtn.classList.add('hidden');
         if (callSpeakerBtn) {
           callSpeakerBtn.classList.remove('hidden');
@@ -224,7 +224,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
 
       case CALL_STATE.RINGING:
         callOverlay.classList.remove('hidden');
-        if (callStatusText) callStatusText.textContent = 'Panggilan Masuk...';
+        if (callStatusText) callStatusText.textContent = 'Incoming Call...';
         if (callAnswerBtn) callAnswerBtn.classList.remove('hidden');
         if (callSpeakerBtn) callSpeakerBtn.classList.add('hidden');
         if (callMuteBtn) callMuteBtn.classList.add('hidden');
@@ -315,7 +315,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
         headers,
         body: JSON.stringify({
           caller_id: currentUser?.id,
-          caller_name: currentUser?.user_metadata?.display_name || 'Pasangan',
+          caller_name: currentUser?.user_metadata?.display_name || 'Partner',
         }),
       });
     } catch (err) {
@@ -423,7 +423,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
     }
 
     if (!activePartner?.id && !partnerProfile?.id) {
-      alert('Belum ada pasangan terdaftar.');
+      alert('No partner registered yet.');
       return;
     }
 
@@ -439,7 +439,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
       await triggerPushNotification();
     } catch (err) {
       console.error('Start call error:', err);
-      alert('Gagal mengakses mikrofon: ' + (err.message || err));
+      alert('Failed to access microphone: ' + (err.message || err));
       endCall(false);
     }
   }
@@ -447,7 +447,7 @@ export function createCallController({ api, currentUser, partnerProfile, dom }) 
   async function handleReceiveOffer(payload) {
     pendingOffer = payload.sdp;
     if (payload.senderId) {
-      activePartner = { id: payload.senderId, display_name: partnerProfile?.display_name || 'Pasangan' };
+      activePartner = { id: payload.senderId, display_name: partnerProfile?.display_name || 'Partner' };
     }
     setState(CALL_STATE.RINGING);
   }
